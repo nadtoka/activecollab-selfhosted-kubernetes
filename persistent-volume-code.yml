@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: activecollab
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: ac-code-pv
+spec:
+  capacity:
+    storage: 60Gi
+  accessModes: ["ReadWriteOnce"]
+  persistentVolumeReclaimPolicy: Retain
+  hostPath:
+    path: /mnt/activecollab-data/activecollab.example.com
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ac-code-pvc
+  namespace: activecollab
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 60Gi
+  volumeName: ac-code-pv

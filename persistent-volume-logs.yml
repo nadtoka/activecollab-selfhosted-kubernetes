@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: ac-logs-pv
+spec:
+  capacity:
+    storage: 10Gi
+  accessModes: 
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  hostPath:
+    path: /mnt/activecollab-data/activecollab.example.com/logs
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ac-logs-pvc
+  namespace: activecollab
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  volumeName: ac-logs-pv
+

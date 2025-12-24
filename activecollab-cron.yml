@@ -1,0 +1,141 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: ac-cron-minute
+  namespace: activecollab
+spec:
+  schedule: "* * * * *"
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: 3600
+      template:
+        spec:
+          dnsPolicy: "None"
+          dnsConfig:
+            nameservers:
+              - 10.96.0.10
+              - 8.8.8.8
+              - 1.1.1.1
+            searches:
+              - activecollab.svc.cluster.local
+              - svc.cluster.local
+              - cluster.local
+            options:
+              - name: ndots
+                value: "5"
+          securityContext:
+            fsGroup: 33
+          containers:
+          - name: ac-cron-minute
+            image: alexnadtoka87/activecollab-php:8.1.4
+              #command: [ "sh", "-c", "source /var/www/activecollab.example.com/.env && php /var/www/activecollab.example.com/tasks/cron_jobs/run_every_minute.php" ]  
+            command: ["php", "/var/www/activecollab.example.com/tasks/cron_jobs/run_every_minute.php"]
+            securityContext:
+              runAsUser: 33     
+              runAsGroup: 33    
+            volumeMounts:
+            - name: code
+              mountPath: /var/www/activecollab.example.com
+                # env:
+                # - name: SMTP_USERNAME
+                #   value: "tasks@example.com"
+                # - name: SMTP_PASSWORD
+                #    value: "PASS"
+                # - name: SMTP_HOST
+                #   value: "smtp.gmail.com"
+                # - name: SMTP_PORT
+                #   value: "587"
+                # - name: SMTP_SECURITY
+                #   value: "tls"
+                # - name: SMTP_VERIFY_CERT
+                #   value: "true"
+          restartPolicy: OnFailure
+          volumes:
+          - name: code
+            persistentVolumeClaim:
+              claimName: ac-code-pvc
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: ac-cron-imap
+  namespace: activecollab
+spec:
+  schedule: "*/3 * * * *"
+  suspend: true
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          dnsPolicy: "None"
+          dnsConfig:
+            nameservers:
+              - 10.96.0.10
+              - 8.8.8.8
+              - 1.1.1.1
+            searches:
+              - activecollab.svc.cluster.local
+              - svc.cluster.local
+              - cluster.local
+            options:
+              - name: ndots
+                value: "5"
+          securityContext:
+            fsGroup: 33
+          containers:
+          - name: ac-cron-imap
+            image: alexnadtoka87/activecollab-php:8.1.4
+            command: ["php", "/var/www/activecollab.example.com/tasks/cron_jobs/check_imap_every_3_minutes.php"]
+            securityContext:
+              runAsUser: 33
+              runAsGroup: 33
+            volumeMounts:
+            - name: code
+              mountPath: /var/www/activecollab.example.com
+          restartPolicy: OnFailure
+          volumes:
+            - name: code
+              persistentVolumeClaim:
+                claimName: ac-code-pvc
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: ac-cron-hourly
+  namespace: activecollab
+spec:
+  schedule: "0 * * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          dnsPolicy: "None"
+          dnsConfig:
+            nameservers:
+              - 10.96.0.10
+              - 8.8.8.8
+              - 1.1.1.1
+            searches:
+              - activecollab.svc.cluster.local
+              - svc.cluster.local
+              - cluster.local
+            options:
+              - name: ndots
+                value: "5"
+          securityContext:
+            fsGroup: 33
+          containers:
+          - name: ac-cron-hourly
+            image: alexnadtoka87/activecollab-php:8.1.4
+            command: ["php", "/var/www/activecollab.example.com/tasks/cron_jobs/run_every_hour.php"]
+            securityContext:
+              runAsUser: 33
+              runAsGroup: 33
+            volumeMounts:
+            - name: code
+              mountPath: /var/www/activecollab.example.com
+          restartPolicy: OnFailure
+          volumes:
+          - name: code
+            persistentVolumeClaim:
+              claimName: ac-code-pvc

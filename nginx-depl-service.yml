@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ac-nginx
+  namespace: activecollab
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ac-nginx
+  template:
+    metadata:
+      labels:
+        app: ac-nginx
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:1.27-alpine
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: code
+              mountPath: /var/www/activecollab.example.com
+            - name: nginx-conf
+              mountPath: /etc/nginx/conf.d
+          readinessProbe:
+            httpGet:
+              path: /index.php
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /index.php
+              port: 80
+            initialDelaySeconds: 30
+            periodSeconds: 20
+      volumes:
+        - name: code
+          persistentVolumeClaim:
+            claimName: ac-code-pvc
+        - name: nginx-conf
+          configMap:
+            name: ac-nginx-conf
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ac-nginx
+  namespace: activecollab
+spec:
+  selector:
+    app: ac-nginx
+  ports:
+    - port: 80
+      targetPort: 80
+      nodePort: 30080
+  type: NodePort

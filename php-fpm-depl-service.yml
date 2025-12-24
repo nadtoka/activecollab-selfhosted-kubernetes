@@ -1,0 +1,102 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ac-php-fpm
+  namespace: activecollab
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ac-php-fpm
+  template:
+    metadata:
+      labels:
+        app: ac-php-fpm
+    spec:
+      dnsPolicy: "None" 
+      dnsConfig:
+        nameservers:
+          - 10.96.0.10   
+          - 8.8.8.8     
+          - 1.1.1.1    
+        searches:
+          - activecollab.svc.cluster.local
+          - svc.cluster.local
+          - cluster.local
+        options:
+          - name: ndots
+            value: "5"
+      # hostNetwork: true
+      containers:
+        - name: php-fpm
+          image: alexnadtoka87/activecollab-php:8.1.4
+          ports:
+            - containerPort: 9000
+          envFrom:
+            - secretRef:
+                name: ac-secrets
+          volumeMounts:
+            - name: code
+              mountPath: /var/www/activecollab.example.com
+            - name: php-config  
+              mountPath: /usr/local/etc/php/conf.d/custom.ini
+              subPath: custom.ini
+            - name: logs
+              mountPath: /var/www/activecollab.example.com/logs2
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "1Gi"
+            limits:
+              cpu: "1000m"
+              memory: "4Gi"
+          readinessProbe:
+            tcpSocket: { port: 9000 }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket: { port: 9000 }
+            initialDelaySeconds: 30
+            periodSeconds: 20
+      volumes:
+        - name: code
+          persistentVolumeClaim:
+            claimName: ac-code-pvc
+        - name: php-config           
+          configMap:
+            name: ac-php-config
+        - name: logs                 
+          persistentVolumeClaim:
+            claimName: ac-logs-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ac-php-fpm
+  namespace: activecollab
+spec:
+  selector:
+    app: ac-php-fpm
+  ports:
+    - name: fpm
+      port: 9000
+      targetPort: 9000
+  type: ClusterIP
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ac-php-config
+  namespace: activecollab
+data:
+  custom.ini: |
+    log_errors = On
+    error_log = /var/www/activecollab.example.com/logs/php_errors.log
+    max_execution_time = 300
+    memory_limit = 512M
+    post_max_size = 128M
+    upload_max_filesize = 128M
+    error_reporting = E_ALL
+    default_socket_timeout = 60
+    openssl.cafile=/usr/lib/ssl/cert.pem
+    openssl.capath=/usr/lib/ssl/certs
