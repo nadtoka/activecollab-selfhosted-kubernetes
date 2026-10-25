@@ -33,13 +33,23 @@ This repository contains Kubernetes manifests for deploying ActiveCollab.
 
 The deployment expects a Secret named `ac-secrets` in the `activecollab` namespace with these keys:
 
-- `DB_HOST`
+- `DB_HOST` (e.g., `mariadb-ext` when using the provided external service)
 - `DB_NAME`
 - `DB_USER`
 - `DB_PASSWORD`
-- `ES_URL`
+- `ES_URL` (e.g., `http://elastic-ext:9200`)
 
 Secret values are not stored in this repository.
+
+Example command to create the secret:
+```bash
+kubectl create secret generic ac-secrets -n activecollab \
+  --from-literal=DB_HOST=mariadb-ext \
+  --from-literal=DB_NAME=activecollab \
+  --from-literal=DB_USER=ac_user \
+  --from-literal=DB_PASSWORD=your_secure_password \
+  --from-literal=ES_URL=http://elastic-ext:9200
+```
 
 ## Deploy (quick start)
 
@@ -91,10 +101,11 @@ kube-linter lint *.yml
 
 ## Notes
 
-- Ensure all hostname references are updated from `activecollab.example.com` to your own domain.
-- Ensure the MySQL endpoint points to the correct VM IP address.
-- Ensure the PHP-FPM image is built and published before deploying.
-- The `dnsPolicy`/`dnsConfig` workaround is a debug aid and is intentionally kept in the manifests.
+- **Domain/Hostname**: Ensure all hostname references are updated from `activecollab.example.com` to your own domain across all YAML files.
+- **External Database & Search**: Ensure the MySQL endpoint in `mysql-endpoint.yml` (and ElasticSearch if used) points to your VM/server IP address.
+- **PHP-FPM image**: Ensure the PHP-FPM image is built and published to your container registry before deploying.
+- **Cluster DNS**: The manifests currently include a custom `dnsPolicy: "None"` and `dnsConfig` pointing to `10.96.0.10` (default kube-dns/CoreDNS Service IP on standard kubeadm clusters). If your cluster uses a different DNS service IP (e.g., `10.43.0.10` in k3s) or if you want default pod DNS behavior, remove the custom `dnsConfig` or switch back to `dnsPolicy: ClusterFirst`.
+- **Storage for Multi-node Clusters**: The included persistent volumes use `hostPath` (`/mnt/activecollab-data/...`) with `ReadWriteOnce`. If deploying across multiple nodes, consider using a network-backed storage provider supporting `ReadWriteMany` (RWX) such as NFS, CephFS, or Longhorn so that PHP-FPM, Nginx, and CronJobs can access the files concurrently.
 
 ## Disclaimer
 

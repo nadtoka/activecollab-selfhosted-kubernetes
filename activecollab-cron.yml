@@ -10,6 +10,7 @@ spec:
       ttlSecondsAfterFinished: 3600
       template:
         spec:
+          hostname: ac-cron-minute
           dnsPolicy: "None"
           dnsConfig:
             nameservers:
@@ -65,8 +66,11 @@ spec:
   suspend: true
   jobTemplate:
     spec:
+      ttlSecondsAfterFinished: 3600
+      backoffLimit: 1
       template:
         spec:
+          hostname: ac-cron-minute
           dnsPolicy: "None"
           dnsConfig:
             nameservers:
@@ -92,7 +96,7 @@ spec:
             volumeMounts:
             - name: code
               mountPath: /var/www/activecollab.example.com
-          restartPolicy: OnFailure
+          restartPolicy: Never
           volumes:
             - name: code
               persistentVolumeClaim:
@@ -107,8 +111,10 @@ spec:
   schedule: "0 * * * *"
   jobTemplate:
     spec:
+      ttlSecondsAfterFinished: 3600
       template:
         spec:
+          hostname: ac-cron-minute
           dnsPolicy: "None"
           dnsConfig:
             nameservers:
